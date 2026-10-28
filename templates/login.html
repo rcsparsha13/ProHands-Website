@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProHands On-Demand Gateway</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #2c3e50; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
+        .gateway-container { background: #f4f6f9; width: 100%; max-width: 450px; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); box-sizing: border-box; text-align: center; }
+        .logo-header h1 { margin: 0; font-size: 32px; color: #2c3e50; }
+        .logo-header p { margin: 5px 0 25px 0; color: #7f8c8d; font-size: 14px; }
+        .section-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); margin-bottom: 25px; }
+        .section-card h2 { margin-top: 0; font-size: 20px; color: #2c3e50; margin-bottom: 15px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; background: #25D366; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.2s; margin-top: 5px; }
+        button:hover { background: #1ebd58; }
+        .register-options { display: flex; flex-direction: column; gap: 12px; }
+        .btn-reg { display: block; text-decoration: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; transition: 0.2s; }
+        .btn-user { background: #34495e; color: white; }
+        .btn-user:hover { background: #2c3e50; }
+        .btn-worker { background: #3498db; color: white; }
+        .btn-worker:hover { background: #2980b9; }
+        .location-status { font-size: 12px; font-weight: bold; margin: 5px 0 10px 0; text-align: center; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <div class="gateway-container">
+        <div class="logo-header">
+            <h1>🛠️ ProHands</h1>
+            <p>Local Service Marketplace Portal</p>
+        </div>
+
+        <div class="section-card">
+            <h2>Account Login</h2>
+            <form action="/login" method="POST">
+                <input type="text" name="email" placeholder="Registered Email / Name" required>
+                <input type="password" name="password" placeholder="Account Password" required>
+                <select name="role">
+                    <option value="customer">Customer / User Client</option>
+                    <option value="worker">Professional Service Worker</option>
+                </select>
+                <button type="submit">Log In to Dashboard</button>
+            </form>
+        </div>
+
+        <div class="section-card" style="margin-bottom: 0;">
+            <h2>New to ProHands?</h2>
+            <p style="font-size: 13px; color: #7f8c8d; margin-top: -10px; margin-bottom: 15px;">Create your authenticated profile link here:</p>
+            <div class="register-options">
+                <a href="#" onclick="showUserSignup(); return false;" class="btn-reg btn-user">Register as a Customer User</a>
+                <a href="/worker-setup" class="btn-reg btn-worker">Register as a Service Worker</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="userModal" style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; z-index: 9999;">
+        <div class="gateway-container" style="background:#f4f6f9; position:relative;">
+            <span onclick="closeUserSignup()" style="position:absolute; top:15px; right:20px; font-size:24px; cursor:pointer; font-weight:bold; color:#7f8c8d;">&times;</span>
+            <h2 style="color:#2c3e50; margin-top:0;">Customer Registration</h2>
+            
+            <form action="/register-user" method="POST" style="text-align: left; background: white; padding: 20px; border-radius: 12px;">
+                <input type="text" name="name" placeholder="Full Name" required>
+                <input type="email" name="email" placeholder="Email Address" required>
+                <input type="text" name="phone" placeholder="Phone Number" required>
+                <input type="password" name="password" placeholder="Set Account Password" required>
+                
+                <input type="hidden" name="lat" id="user-lat" value="12.9716">
+                <input type="hidden" name="lon" id="user-lon" value="77.5946">
+                
+                <div id="loc-status" class="location-status">🛰️ Requesting device location permission...</div>
+                
+                <button type="submit" style="background: #2c3e50; margin-top: 10px;">Complete Registration</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showUserSignup() { 
+            document.getElementById('userModal').style.display = 'flex'; 
+            var statusDiv = document.getElementById('loc-status');
+            
+            // Checks for permission and fetches live lat/lon instantly
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        document.getElementById('user-lat').value = pos.coords.latitude;
+                        document.getElementById('user-lon').value = pos.coords.longitude;
+                        statusDiv.innerText = "✔️ Live Location Captured!";
+                        statusDiv.style.color = "#27ae60";
+                    },
+                    function(err) {
+                        statusDiv.innerText = "⚠️ Permission denied. Using default location.";
+                        statusDiv.style.color = "#e67e22";
+                    },
+                    { timeout: 6000 }
+                );
+            } else {
+                statusDiv.innerText = "❌ Location tracking not supported by browser.";
+                statusDiv.style.color = "#c62828";
+            }
+        }
+        
+        function closeUserSignup() { document.getElementById('userModal').style.display = 'none'; }
+    </script>
+
+</body>
+</html>
