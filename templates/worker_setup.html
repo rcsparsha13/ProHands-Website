@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Profile Configuration</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: #f4f6f9; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px; 
+            color: #2c3e50; 
+            box-sizing: border-box;
+        }
+        .auth-card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 30px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            width: 100%;
+            max-width: 500px; 
+            box-sizing: border-box; 
+        }
+        h2 { 
+            margin-top: 0; 
+            color: #2c3e50; 
+            font-size: 28px; 
+            font-weight: 700; 
+            margin-bottom: 25px; 
+            border-bottom: 2px solid #f1f2f6; 
+            padding-bottom: 15px; 
+        }
+        label { 
+            font-size: 14px; 
+            font-weight: 700; 
+            display: block; 
+            margin: 18px 0 6px 0; 
+            color: #2c3e50; 
+        }
+        input { 
+            width: 100%; 
+            padding: 11px; 
+            border: 1px solid #d9e2ec; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 14px; 
+            color: #2c3e50; 
+        }
+        input:focus { 
+            border-color: #3498db; 
+            outline: none; 
+        }
+        input::placeholder { 
+            color: #9fb3c8; 
+        }
+        .filled-input {
+            background-color: #ecf3fe;
+        }
+        .location-badge { 
+            background: #e8f5e9; 
+            color: #2e7d32; 
+            padding: 12px; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            margin-top: 20px; 
+            font-weight: bold; 
+            text-align: center; 
+            border: 1px solid #c8e6c9; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 5px; 
+        }
+        .btn { 
+            width: 100%; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            color: white; 
+            cursor: pointer; 
+            margin-top: 25px; 
+            font-size: 16px; 
+            background: #3498db; 
+            transition: background 0.2s; 
+        }
+        .btn:hover { 
+            background: #2980b9; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card">
+        <h2>Worker Profile Configuration</h2>
+        <form action="/create-profile" method="POST">
+            
+            <label>Full Business Name</label>
+            <input type="text" name="name" placeholder="John Doe" required>
+            
+            <label>Email Address Anchor</label>
+            <input type="email" name="email" class="filled-input" placeholder="rakhi@gmail.com" required>
+            
+            <label>Contact Phone Line</label>
+            <input type="text" name="phone" placeholder="9845012345" required>
+            
+            <label>Professional Qualifications</label>
+            <input type="text" name="qualification" placeholder="Licensed Plumber / 5 Yrs Exp" required>
+            
+            <label>Job</label>
+            <input type="text" name="job_expert" placeholder="e.g. Plumbing Expert, Electrical Specialist" required>
+            
+            <label>Target Daily Wage</label>
+            <input type="number" name="daily_wage" placeholder="500" required>
+
+            <label>Home Base Town Name</label>
+            <input type="text" name="town" id="worker-town" placeholder="Fetching location automatically..." required>
+
+            <label>Set Secure Password</label>
+            <input type="password" name="password" class="filled-input" placeholder="********" required>
+
+            <input type="hidden" name="lat" id="worker-lat" value="12.9224">
+            <input type="hidden" name="lon" id="worker-lon" value="77.4981">
+
+            <div id="loc-badge" class="location-badge" style="background:#fff3cd; color:#856404; border-color:#ffeeba;">
+                🛰️ Requesting location permission...
+            </div>
+
+            <button type="submit" class="btn">Save & Complete Setup</button>
+        </form>
+    </div>
+
+    <script>
+        // Trigger location permission instantly when page loads
+        document.addEventListener("DOMContentLoaded", function() {
+            var badge = document.getElementById('loc-badge');
+            var townInput = document.getElementById('worker-town');
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        var lat = pos.coords.latitude;
+                        var lon = pos.coords.longitude;
+                        
+                        document.getElementById('worker-lat').value = lat;
+                        document.getElementById('worker-lon').value = lon;
+                        
+                        badge.style.background = "#e8f5e9";
+                        badge.style.color = "#2e7d32";
+                        badge.style.borderColor = "#c8e6c9";
+                        badge.innerHTML = "✔️ Worker Base Location Linked!";
+                        
+                        // Use openstreetmap free service to get town name automatically
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.address) {
+                                    var suburb = data.address.suburb || data.address.neighbourhood || "";
+                                    var city = data.address.city || data.address.town || data.address.village || "";
+                                    
+                                    if(suburb && city) {
+                                        townInput.value = `${suburb}, ${city}`;
+                                    } else {
+                                        townInput.value = city || "Bengaluru";
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                townInput.value = "Kengeri, Bengaluru"; // Clean fallback
+                            });
+                    },
+                    function(err) {
+                        badge.style.background = "#ffebee";
+                        badge.style.color = "#c62828";
+                        badge.style.borderColor = "#ffcdd2";
+                        badge.innerText = "⚠️ Location Permission Denied.";
+                        townInput.value = "Kengeri, Bengaluru";
+                    }
+                );
+            } else {
+                badge.innerText = "❌ Browser tracking not supported.";
+                townInput.value = "Kengeri, Bengaluru";
+            }
+        });
+    </script>
+
+</body>
+</html>
