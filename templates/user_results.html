@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ProHands | Search Results</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 40px; }
+        .results-container { max-width: 800px; margin: auto; }
+        .worker-card { background: white; padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .info h3 { margin: 0 0 10px 0; color: #2c3e50; }
+        .wage { color: #2e7d32; font-weight: bold; font-size: 20px; }
+        .btn-hire { background: #25D366; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        .trust-badge { display: inline-block; background: #e3f2fd; color: #1976d2; padding: 3px 10px; border-radius: 5px; font-size: 12px; margin-top: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="results-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Results Near You</h2>
+            <a href="/user-home" style="text-decoration:none; color:#666;">← Back to Search</a>
+        </div>
+
+        {% for worker in workers %}
+        <div class="worker-card">
+            <div class="info">
+                <h3>{{ worker.name }}</h3>
+                <p style="margin: 5px 0; color: #666;">Expertise: <strong>{{ worker.job }}</strong></p>
+                <div class="trust-badge">Trust Score: {{ worker.trust }}%</div>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #999;">📍 {{ worker.dist }} km away</p>
+            </div>
+            <div style="text-align: right;">
+                <div class="wage">₹{{ worker.wage }}<span style="font-size: 12px; color: #666;">/day</span></div>
+                <p style="color: #f39c12; margin: 10px 0;">★ {{ worker.rating|round(1) }} / 5.0</p>
+                <a href="/hire/{{ worker.id }}" class="btn-hire">Hire Now</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="section" style="text-align: center; background: white; padding: 50px; border-radius: 15px;">
+            <p style="font-size: 18px; color: #666;">No professionals found for this category nearby.</p>
+            <a href="/user-home" class="btn-hire" style="display: inline-block; margin-top: 20px;">Try another search</a>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
