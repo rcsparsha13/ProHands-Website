@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; padding: 30px 20px; color: #2c3e50; margin: 0; }
+        .dashboard-wrapper { max-width: 750px; margin: 0 auto; }
+        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; box-sizing: border-box; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .booking-card { border-left: 5px solid #34495e; padding: 20px; margin: 15px 0; background: #fafafa; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .btn-finish { background: #e67e22; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-size: 14px; display: inline-block; font-weight: bold; margin-top: 14px; border: none; cursor: pointer; }
+        .live-map { width: 100%; height: 280px; margin-top: 12px; border-radius: 8px; border: 1px solid #ddd; }
+        .eta-banner { background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; padding: 12px 16px; border-radius: 6px; font-weight: bold; font-size: 14px; margin-top: 12px; }
+        .search-row { display: flex; gap: 10px; margin-top: 10px; }
+        .search-row input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        .btn-search { padding: 12px 24px; background: #25D366; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-logout { background: #e74c3c; color: white; padding: 8px 16px; font-weight: bold; text-decoration: none; border-radius: 6px; font-size: 13px; }
+        .btn-logout:hover { background: #c0392b; }
+        
+        .rating-box { background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; padding: 18px; margin-top: 15px; color: #856404; }
+        .rating-select { padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #ffeeba; background: white; font-weight: bold; margin-right: 10px; }
+        .review-input { width: 100%; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box; }
+        .btn-submit-rate { background: #2ecc71; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; margin-top: 12px; cursor: pointer; display: inline-block; }
+        .btn-submit-rate:hover { background: #27ae60; }
+        .btn-rehire { text-decoration: none; font-size: 13px; padding: 8px 14px; border-radius: 6px; font-weight: bold; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+        <div class="box">
+            <div class="header-row">
+                <h2 style="margin: 0; font-size: 22px;">Find Nearby Professionals</h2>
+                <a href="/logout" class="btn-logout">Logout</a>
+            </div>
+            <form action="/search-jobs" method="POST" class="search-row">
+                <input type="text" name="job_type" placeholder="What service do you need?" required>
+                <button type="submit" class="btn-search">Search Jobs</button>
+            </form>
+        </div>
+
+        <div class="box">
+            <h3 style="margin-top: 0; font-size: 18px; border-bottom: 2px solid #f1f2f6; padding-bottom: 10px;">Your Service Booking Contracts</h3>
+            {% if not bookings %}
+                <p style="color: #7f8c8d; text-align: center; margin: 20px 0;">No current active service bookings logged.</p>
+            {% endif %}
+            {% for b in bookings %}
+            <div class="booking-card">
+                <p style="font-size: 16px; margin: 0 0 8px 0;"><strong>Booked Service:</strong> {{ b.job_expert }} ({{ b.name }})</p>
+                <p style="margin: 4px 0;">Current Status: <span style="font-weight: bold; color: #2980b9;">{{ b.status }}</span></p>
+                
+                {% if b.status == 'PENDING' %}
+                    <p style="color:#e67e22; font-style:italic; margin-top:8px;">Awaiting service provider acceptance signature...</p>
+
+                {% elif b.status == 'ACCEPTED' %}
+                    <div class="eta-banner">
+                        🚙 <span id="eta-text-{{ b.id }}">Live Tracking Status: Calculating exact transit path...</span>
+                    </div>
+
+                    <div class="live-map" id="map-user-{{ b.id }}"></div>
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            var map = L.map('map-user-{{ b.id }}').setView([{{ b.wrk_lat }}, {{ b.wrk_lon }}], 14);
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                            
+                            var workerMarker = L.marker([{{ b.wrk_lat }}, {{ b.wrk_lon }}]).addTo(map).bindPopup("<b>Worker Position</b>").openPopup();
+                            var userMarker = L.marker([{{ b.user_lat }}, {{ b.user_lon }}]).addTo(map).bindPopup("<b>Your Location</b>");
+                            
+                            var routeLine = L.polyline([[{{ b.wrk_lat }}, {{ b.wrk_lon }}], [{{ b.user_lat }}, {{ b.user_lon }}]], {color: '#3498db', weight: 4, dashArray: '5, 10'}).addTo(map);
+
+                        function startLiveTrackingPoll() {
+                            setInterval(function() {
+                                fetch('/stream-tracking/{{ b.id }}')
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.worker_lat && data.worker_lon) {
+                                            var newWorkerPos = [data.worker_lat, data.worker_lon];
+                                            workerMarker.setLatLng(newWorkerPos);
+                                            routeLine.setLatLngs([newWorkerPos, [data.user_lat, data.user_lon]]);
+                                            
+                                            document.getElementById('eta-text-{{ b.id }}').innerText = "Live Tracking Status: Professional is " + data.distance + " away (Approx. " + data.eta + " to arrive)";
+                                        }
+                                    })
+                                    .catch(err => console.error(err));
+                            }, 3000);
+                        }
+                        startLiveTrackingPoll();
+                    });
+                </script>
+                <br>
+                <a href="{{ url_for('job_action', booking_id=b.id, action='finish') }}" class="btn-finish">Mark as Finished</a>
+            
+            {% elif b.status == 'COMPLETED' %}
+                <div class="rating-box">
+                    <h4 style="margin-top: 0;">⭐ Job Completed! Please Rate Your Specialist</h4>
+                    <p style="font-size: 13px; margin-bottom: 12px;">Your feedback directly updates the provider's total score dynamically on the network map dashboard layers.</p>
+                    
+                    <form action="{{ url_for('submit_rating', booking_id=b.id) }}" method="POST">
+                        <label for="rating-{{ b.id }}"><strong>Select Rating Score:</strong> </label>
+                        <select name="rating" id="rating-{{ b.id }}" class="rating-select" required>
+                            <option value="5">⭐⭐⭐⭐⭐ (5.0 - Excellent Service)</option>
+                            <option value="4">⭐⭐⭐⭐ (4.0 - Good Work)</option>
+                            <option value="3">⭐⭐⭐ (3.0 - Satisfactory)</option>
+                            <option value="2">⭐⭐ (2.0 - Needs Improvement)</option>
+                            <option value="1">⭐ (1.0 - Unacceptable Quality)</option>
+                        </select>
+                        
+                        <textarea name="review_text" class="review-input" placeholder="Type a brief description summary of the performance metrics..." rows="2" required></textarea>
+                        
+                        <button type="submit" class="btn-submit-rate">Submit Performance Review</button>
+                    </form>
+                    
+                    <div style="margin-top: 15px; border-top: 1px dashed #ffeeba; padding-top: 12px;">
+                        <a href="{{ url_for('hire', worker_id=b.worker_id) }}" class="btn-rehire" style="background: #3498db; color: white;">🔄 Hire This Pro Again</a>
+                    </div>
+                </div>
+
+                {% elif b.status == 'RATED' %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; background: #e8f5e9; border: 1px solid #c8e6c9; padding: 12px; border-radius: 6px;">
+                        <p style="color: #2e7d32; font-weight: bold; margin: 0; font-size: 14px;">✔️ Performance review recorded! Thank you for grading this job segment.</p>
+                        <a href="{{ url_for('hire', worker_id=b.worker_id) }}" class="btn-rehire" style="background: #25D366; color: white;">🔄 Hire Again</a>
+                    </div>
+                    
+                {% elif b.status == 'REJECTED' %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; background: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px;">
+                        <p style="color: #c62828; font-weight: bold; margin: 0; font-size: 14px;">❌ This service contract request was declined by the professional.</p>
+                        <a href="{{ url_for('hire', worker_id=b.worker_id) }}" class="btn-rehire" style="background: #3498db; color: white;">🔄 Retry Booking</a>
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</body>
+</html>
